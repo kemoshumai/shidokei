@@ -1,7 +1,17 @@
 use shidokei::parser::{races::RaceRaw, results::ResultRaw};
 
 fn main() {
-    let (results, races) = load_data();
+    let (results, _races) = load_data();
+
+    let (rank_sum, rank_count) = results
+        .iter()
+        .filter(|r| r.horse_name == "モンド")
+        .filter_map(|r| r.rank)
+        .fold((0_u64, 0_u64), |(sum, cnt), rank| (sum + rank, cnt + 1));
+
+    let rank_avg = rank_sum as f64 / rank_count as f64;
+
+    println!("{}", rank_avg);
 }
 
 fn load_data() -> (Vec<ResultRaw>, Vec<RaceRaw>) {
