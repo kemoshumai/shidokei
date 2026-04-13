@@ -1,11 +1,11 @@
-use shidokei::parser::races::RaceRaw;
+use shidokei::parser::results::ResultRaw;
 
 fn main() {
-    let file_reader = std::fs::File::open("./data/raw/2025/races.csv").unwrap();
-    let races = RaceRaw::from_csv(file_reader).unwrap();
+    let file_reader = std::fs::File::open("./data/raw/2025/results.csv").unwrap();
+    let results = ResultRaw::from_csv(file_reader).unwrap();
     println!(
         "{:?} / {}",
-        races.iter().filter(|r| r.weather == "晴").count(),
-        races.len()
+        results.iter().filter(|r| r.horse_name == "モンド").count(),
+        results.len()
     );
 }
