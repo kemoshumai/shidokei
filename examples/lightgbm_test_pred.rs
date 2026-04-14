@@ -45,72 +45,62 @@ impl Input {
 }
 
 fn main() {
-    let (results, races) = load_data();
+    let horse_ids = [
+        30087402996, // ミチ
+        30005401896, // スイートロータス
+        30013406896, // クールブリーズ
+        30068405686, // レジーナチェリ
+        30058408356, // バジルフレイバー
+        30077400466, // ヨシノローズ
+        30035405586, // ヒンナ
+        30055402196, // タール
+        30048400196, // ハクアイ
+        30026404896, // ヴァルチャースター
+    ];
 
-    println!("全体：{}件", results.len());
+    let jockey_ids = [
+        30878, 31231, 31319, 80171, 31082, 31241, 31352, 31267, 31323, 31323,
+    ];
 
-    let inputs = results
-        .iter()
-        .filter_map(|r| {
-            let race = races.get(&r.race_id).unwrap();
+    let trainer_ids = [
+        11315, 11495, 11371, 11353, 11175, 11329, 11468, 11329, 11301, 11371,
+    ];
+    let weights = [444, 437, 473, 444, 468, 464, 464, 524, 449, 456];
 
-            let Some(rank) = r.rank else {
-                // 出走取り消しなどで順位が存在しないケースは学習データから除外する
-                return None;
-            };
+    let inputs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(|i| Input {
+        venue: Venue::Oi,
+        distance: 1600,
+        track_condition: TrackCondition::Good,
+        weather: Weather::Sunny,
+        horse_id: horse_ids[i],
+        horse_number: i as u64 + 1,
+        jockey_id: jockey_ids[i],
+        trainer_id: trainer_ids[i],
+        weight: weights[i] as f64,
+        horse_weight: None,
+        rank: 1, // ダミーの順位
+    });
 
-            Some(Input {
-                venue: race.venue,
-                distance: race.distance,
-                track_condition: race.track_condition,
-                weather: race.weather,
-                horse_id: r.horse_id,
-                horse_number: r.horse_number,
-                jockey_id: r.jockey_id,
-                trainer_id: r.trainer_id,
-                weight: r.weight.unwrap(),
-                horse_weight: r.horse_weight,
-                rank,
-            })
-        })
-        .collect::<Vec<_>>();
-
-    println!("有効：{}件", inputs.len());
-
-    let features = inputs
-        .iter()
-        .map(|i| {
-            let feature_vector = i.to_feature_vector();
-            assert_eq!(feature_vector.len(), 10); // 特徴量の数が10であることを確認
-            feature_vector
-        })
-        .collect::<Vec<_>>();
-
-    let labels = inputs
-        .iter()
-        .map(|i| (i.rank - 1) as f32)
-        .collect::<Vec<_>>();
-
-    let num_class = {
-        let set: HashSet<u64> = inputs.iter().map(|i| i.rank).collect();
-        set.len()
-    };
-    assert!(num_class > 1, "num_class must be > 1");
-
-    let dataset = Dataset::from_vec_of_vec(features, labels, true).unwrap();
-
-    let params = json! {
-        {
-            "num_iterations": 100,
-            "objective": "multiclass",
-            "num_class": num_class,
-        }
-    };
-
-    let bst = Booster::train(dataset, &params).unwrap();
-    bst.save_file("./model.lgb").unwrap();
+    for input in inputs {
+        let predicted_rank = predict_rank(&input);
+        println!(
+            "Horse ID: {}, Predicted Rank: {}",
+            input.horse_id, predicted_rank
+        );
+    }
 
     println!("Done.");
+}
+
+fn predict_rank(input: &Input) -> f64 {
+    let bst = Booster::from_file("./model.lgb").unwrap();
+    let features = input.to_feature_vector();
+    let n_features = features.len();
+    let y_pred = bst
+        .predict_with_params(&features, n_features as i32, true, "num_threads=1")
+        .unwrap()[0];
+
+    y_pred
 }
 
 fn load_data() -> (Vec<ResultRaw>, HashMap<u64, RaceRaw>) {
