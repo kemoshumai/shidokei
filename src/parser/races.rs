@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub struct RaceRaw {
     pub race_id: u64,
@@ -13,12 +15,12 @@ pub struct RaceRaw {
 }
 
 impl RaceRaw {
-    pub fn from_csv<R>(rdr: R) -> Result<Vec<Self>, csv::Error>
+    pub fn from_csv<R>(rdr: R) -> Result<HashMap<u64, Self>, csv::Error>
     where
         R: std::io::Read,
     {
         let mut rdr = csv::ReaderBuilder::new().has_headers(true).from_reader(rdr);
-        let mut races = Vec::new();
+        let mut races = HashMap::new();
 
         let header = rdr.headers()?.clone();
         let expected_2018_format = header.iter().find(|p| p.ends_with("lap_times")).is_some();
@@ -52,7 +54,7 @@ impl RaceRaw {
                     lap_times: None, // 2026年以降の形式ではlap_timesが存在しないため、Noneを設定
                 }
             };
-            races.push(race);
+            races.insert(race.race_id, race);
         }
         Ok(races)
     }
