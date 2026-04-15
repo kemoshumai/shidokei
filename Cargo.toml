@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 csv = "1.4.0"
 lightgbm3 = "1.0.10"
+rankit = "0.1.4"
 serde_json = "1.0.149"
